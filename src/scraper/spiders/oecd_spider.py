@@ -4,6 +4,8 @@ import scrapy
 from loguru import logger
 from scrapy.http import Response
 
+from src.scraper.spiders.base_scraper import BaseScraper
+
 # Matches article pages like https://oecd.ai/en/wonk/some-article-slug
 _ARTICLE_URL_RE = re.compile(r"oecd\.ai/en/wonk/[^/]+$")
 
@@ -133,3 +135,44 @@ class OECDAISpider(scrapy.Spider):
 
     def _handle_error(self, failure):
         logger.error(f"Request failed [{failure.value}]: {failure.request.url}")
+
+
+# ---------------------------------------------------------------------------
+# BaseScraper-compatible adapter
+# ---------------------------------------------------------------------------
+
+
+class OECDScraper(BaseScraper):
+    """Wraps OECDAISpider so it can be driven by the same run/save_to_db
+    interface as the other BaseScraper subclasses.
+
+    The Scrapy CrawlerProcess is run with the PostgresPipeline disabled;
+    items are collected via the item_scraped signal and returned from run()
+    so that BaseScraper.save_to_db() handles all persistence uniformly.
+    """
+
+    source_name = "oecd_ai"
+
+    def run(self) -> list[dict]:
+        from scrapy import signals
+        from scrapy.crawler import CrawlerProcess
+
+        import src.scraper.settings as _s
+
+        collected: list[dict] = []
+
+        settings = {k: getattr(_s, k) for k in dir(_s) if k.isupper()}
+        settings["ITEM_PIPELINES"] = {}  # Disable pipeline; save_to_db handles persistence
+
+        process = CrawlerProcess(settings=settings)
+        crawler = process.create_crawler(OECDAISpider)
+
+        def item_scraped(item, response, spider):
+            collected.append(dict(item))
+
+        crawler.signals.connect(item_scraped, signal=signals.item_scraped)
+        process.crawl(crawler)
+        process.start()
+
+        logger.info(f"OECD spider collected {len(collected)} items")
+        return collected
