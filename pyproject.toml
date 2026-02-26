@@ -17,7 +17,8 @@ dependencies = [
     "psycopg2-binary (>=2.9.11,<3.0.0)",
     "sqlalchemy (>=2.0.46,<3.0.0)",
     "alembic (>=1.18.4,<2.0.0)",
-    "feedparser (>=6.0.0,<7.0.0)"
+    "feedparser (>=6.0.0,<7.0.0)",
+    "prefect (>=3.6.19,<4.0.0) ; python_version >= \"3.12\" and python_version < \"3.15\""
 ]
 
 
