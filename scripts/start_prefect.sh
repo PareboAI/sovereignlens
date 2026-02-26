@@ -15,7 +15,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PREFECT_HEALTH="http://localhost:4200/api/health"
+export PREFECT_API_URL="http://127.0.0.1:4200/api"
+PREFECT_HEALTH="http://127.0.0.1:4200/api/health"
 
 # ---------------------------------------------------------------------------
 # Cleanup: kill the background server when this script exits for any reason.
@@ -35,7 +36,7 @@ trap cleanup EXIT INT TERM
 # 1. Start Prefect server in the background.
 # ---------------------------------------------------------------------------
 echo "Starting Prefect server..."
-prefect server start &
+poetry run prefect server start &
 SERVER_PID=$!
 
 # ---------------------------------------------------------------------------
